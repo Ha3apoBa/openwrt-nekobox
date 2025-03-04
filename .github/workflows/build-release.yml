@@ -42,7 +42,7 @@ jobs:
       run: |
         cd openwrt-nekobox
         cp -r nekobox package/
-        make package/luci-app-nekobox/compile
+        make package/luci-app-nekobox/compile V=s
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
@@ -67,4 +67,4 @@ jobs:
       with:
         tag_name: ${{ github.event.inputs.version }}-cn
         name: luci-app-nekobox ${{ github.event.inputs.version }}-cn
-        files: luci-app-nekobox*.ipk
+        files: luci-app-nekobox/*.ipk
