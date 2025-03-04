@@ -41,14 +41,18 @@ jobs:
     - name: Prepare SDK
       run: |
         cd openwrt-nekobox
-        ./scripts/feeds update -a || true
-        ./scripts/feeds install -a || true
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
 
-    - name: Build package
+    - name: Copy luci-app-nekobox to package directory
       run: |
         cd openwrt-nekobox
         mkdir -p package/luci-app-nekobox
         cp -r luci-app-nekobox/* package/luci-app-nekobox/
+
+    - name: Build package
+      run: |
+        cd openwrt-nekobox
         make package/luci-app-nekobox/compile V=s
 
     - name: Upload artifact
