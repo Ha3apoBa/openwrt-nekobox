@@ -16,10 +16,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Fix workspace permissions
-      run: |
-        chmod -R 777 $GITHUB_WORKSPACE
-
     - name: Verify Makefile exists
       run: |
         if [ ! -f "$GITHUB_WORKSPACE/luci-app-nekobox/Makefile" ]; then
@@ -27,10 +23,33 @@ jobs:
           exit 1
         fi
 
-    - name: Prepare build environment
+    - name: Install Official Build Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libncurses5-dev libncursesw5-dev zlib1g-dev gawk git gettext libssl-dev xsltproc wget unzip python3 libdeflate-dev
+        sudo apt-get install -y \
+          binutils \
+          bzip2 \
+          coreutils \
+          diffutils \
+          findutils \
+          flex \
+          g++ \
+          gawk \
+          gcc \
+          gettext \
+          grep \
+          libc6-dev \
+          libncurses5-dev \
+          libssl-dev \
+          make \
+          patch \
+          perl \
+          python3 \
+          rsync \
+          subversion \
+          unzip \
+          wget \
+          zlib1g-dev
 
     - name: Setup OpenWrt SDK
       run: |
