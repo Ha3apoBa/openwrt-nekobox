@@ -41,8 +41,8 @@ jobs:
     - name: Prepare SDK
       run: |
         cd openwrt-nekobox
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
+        ./scripts/feeds update -a || true
+        ./scripts/feeds install -a || true
 
     - name: Copy luci-app-nekobox to package directory
       run: |
