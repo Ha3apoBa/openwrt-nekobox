@@ -1,0 +1,68 @@
+name: Build and Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Custom version number'     
+        required: true
+        default: '1.0.0'
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: openwrtorg/sdk:x86_64-23.05.3
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup version
+      run: |
+        if [ -n "${{ github.event.inputs.version }}" ]; then
+          echo ${{ github.event.inputs.version }} > nekobox/version.txt
+        elif [ -n "${{ github.ref_type }}" == "tag" ]; then
+          echo "${GITHUB_REF#refs/tags/v}" > nekobox/version.txt
+        else
+          echo "1.0.0" > nekobox/version.txt
+        fi
+
+    - name: Prepare SDK
+      run: |
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
+    - name: Build package
+      run: |
+        cp -r nekobox package/
+        make package/luci-app-nekobox/compile
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: luci-app-nekobox
+        path: bin/packages/*/base/luci-app-nekobox*.ipk
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download artifact
+      uses: actions/download-artifact@v4
+      with:
+        name: luci-app-nekobox
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v$(cat nekobox/version.txt)
+        name: luci-app-nekobox v$(cat nekobox/version.txt)
+        files: luci-app-nekobox*.ipk
