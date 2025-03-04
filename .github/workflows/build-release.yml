@@ -53,6 +53,7 @@ jobs:
     - name: Build package
       run: |
         cd openwrt-nekobox
+        make defconfig
         make package/luci-app-nekobox/compile V=s
 
     - name: Upload artifact
