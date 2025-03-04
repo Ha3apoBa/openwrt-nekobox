@@ -24,7 +24,6 @@ jobs:
     - name: Fix workspace permissions
       run: |
         chmod -R 777 $GITHUB_WORKSPACE
-        chown -R build:build $GITHUB_WORKSPACE
 
     - name: Inject version
       run: |
