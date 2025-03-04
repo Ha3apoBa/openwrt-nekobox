@@ -35,11 +35,10 @@ jobs:
         sed -i "s/PKG_VERSION:=.*/PKG_VERSION:=${{ github.event.inputs.version }}/" luci-app-nekobox/Makefile
         sed -i "s/PKG_RELEASE:=.*/PKG_RELEASE:=cn/" luci-app-nekobox/Makefile
 
-    - name: Prepare SDK
+    - name: Prepare build environment
       run: |
-        cd openwrt-nekobox
-        ./scripts/feeds update -a
-        ./scripts/feeds install -a
+        sudo apt-get update
+        sudo apt-get install -y build-essential libncurses5-dev libncursesw5-dev zlib1g-dev gawk git gettext libssl-dev xsltproc wget unzip python3
 
     - name: Copy luci-app-nekobox to package directory
       run: |
