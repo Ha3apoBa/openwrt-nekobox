@@ -7,9 +7,6 @@ on:
         description: 'Custom version number'     
         required: true
         default: '1.0.0'
-  push:
-    tags:
-      - 'v*'
 
 jobs:
   build:
@@ -19,18 +16,11 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        submodules: recursive
 
-    - name: Setup version
+    - name: Inject version
       run: |
-        if [ -n "${{ github.event.inputs.version }}" ]; then
-          echo ${{ github.event.inputs.version }} > nekobox/version.txt
-        elif [ -n "${{ github.ref_type }}" == "tag" ]; then
-          echo "${GITHUB_REF#refs/tags/v}" > nekobox/version.txt
-        else
-          echo "1.0.0" > nekobox/version.txt
-        fi
+        sed -i "s/PKG_VERSION:=.*/PKG_VERSION:=${{ github.event.inputs.version }}/" nekobox/Makefile
+        sed -i "s/PKG_RELEASE:=.*/PKG_RELEASE:=cn/" nekobox/Makefile
 
     - name: Prepare SDK
       run: |
@@ -63,6 +53,6 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: v$(cat nekobox/version.txt)
-        name: luci-app-nekobox v$(cat nekobox/version.txt)
+        tag_name: ${{ github.event.inputs.version }}-cn 
+        name: luci-app-nekobox ${{ github.event.inputs.version }}-cn
         files: luci-app-nekobox*.ipk
