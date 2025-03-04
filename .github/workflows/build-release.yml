@@ -15,8 +15,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        path: openwrt-nekobox
 
     - name: Fix workspace permissions
       run: |
@@ -29,33 +27,38 @@ jobs:
           exit 1
         fi
 
-    - name: Inject version
-      run: |
-        cd openwrt-nekobox
-        sed -i "s/PKG_VERSION:=.*/PKG_VERSION:=${{ github.event.inputs.version }}/" luci-app-nekobox/Makefile
-        sed -i "s/PKG_RELEASE:=.*/PKG_RELEASE:=cn/" luci-app-nekobox/Makefile
-
     - name: Prepare build environment
       run: |
         sudo apt-get update
         sudo apt-get install -y build-essential libncurses5-dev libncursesw5-dev zlib1g-dev gawk git gettext libssl-dev xsltproc wget unzip python3
 
+    - name: Setup OpenWrt SDK
+      run: |
+        git clone https://github.com/openwrt/openwrt.git openwrt-sdk
+        cd openwrt-sdk
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
     - name: Copy luci-app-nekobox to package directory
       run: |
-        cd openwrt-nekobox
-        mkdir -p package/luci-app-nekobox
-        cp -r luci-app-nekobox/* package/luci-app-nekobox/
+        cd openwrt-sdk
+        mkdir -p package/feeds/custom
+        cp -r ../../openwrt-nekobox/luci-app-nekobox package/feeds/custom/
+        echo "src-link custom $(pwd)/package/feeds/custom" >> feeds.conf.default
+        ./scripts/feeds update custom
+        ./scripts/feeds install luci-app-nekobox
 
     - name: Build package
       run: |
-        cd openwrt-nekobox
+        cd openwrt-sdk
+        make defconfig
         make package/luci-app-nekobox/compile V=s
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: luci-app-nekobox
-        path: openwrt-nekobox/bin/packages/*/base/luci-app-nekobox*.ipk
+        path: openwrt-sdk/bin/packages/*/custom/luci-app-nekobox*.ipk
 
   release:
     needs: build
