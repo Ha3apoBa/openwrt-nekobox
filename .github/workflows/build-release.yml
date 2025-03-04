@@ -13,31 +13,34 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/openwrt/sdk:x86_64-23.05.3
-      options: --user root -v ${{ github.workspace }}:/home/build  
+      options: --user root  
 
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        path: /home/build  
+        path: openwrt-nekobox  
 
-    - name: Fix permissions
+    - name: Fix workspace permissions
       run: |
-        chmod -R 777 /home/build
-        chown -R build:build /home/build
+        chmod -R 777 $GITHUB_WORKSPACE
+        chown -R build:build $GITHUB_WORKSPACE
 
     - name: Inject version
       run: |
+        cd openwrt-nekobox
         sed -i "s/PKG_VERSION:=.*/PKG_VERSION:=${{ github.event.inputs.version }}/" nekobox/Makefile
         sed -i "s/PKG_RELEASE:=.*/PKG_RELEASE:=cn/" nekobox/Makefile
 
     - name: Prepare SDK
       run: |
+        cd openwrt-nekobox
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
     - name: Build package
       run: |
+        cd openwrt-nekobox
         cp -r nekobox package/
         make package/luci-app-nekobox/compile
 
@@ -45,7 +48,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: luci-app-nekobox
-        path: bin/packages/*/base/luci-app-nekobox*.ipk
+        path: openwrt-nekobox/bin/packages/*/base/luci-app-nekobox*.ipk
 
   release:
     needs: build
