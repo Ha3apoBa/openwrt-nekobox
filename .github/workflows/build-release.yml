@@ -15,8 +15,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        path: openwrt-nekobox
 
     - name: Fix workspace permissions
       run: |
@@ -24,7 +22,7 @@ jobs:
 
     - name: Verify Makefile exists
       run: |
-        if [ ! -f openwrt-nekobox/luci-app-nekobox/Makefile ]; then
+        if [ ! -f $GITHUB_WORKSPACE/openwrt-nekobox/luci-app-nekobox/Makefile ]; then
           echo "Makefile not found!"
           exit 1
         fi
@@ -45,7 +43,7 @@ jobs:
       run: |
         cd openwrt-sdk
         mkdir -p package/feeds/custom
-        cp -r ../../openwrt-nekobox/luci-app-nekobox package/feeds/custom/
+        cp -r $GITHUB_WORKSPACE/openwrt-nekobox/luci-app-nekobox package/feeds/custom/
         echo "src-link custom $(pwd)/package/feeds/custom" >> feeds.conf.default
         ./scripts/feeds update custom
         ./scripts/feeds install luci-app-nekobox
