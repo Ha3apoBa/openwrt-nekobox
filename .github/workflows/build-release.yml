@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: openwrtorg/sdk:x86_64-23.05.3
+    container: ghcr.io/openwrt/sdk:x86_64-23.05.3
 
     steps:
     - name: Checkout code
@@ -53,6 +53,6 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.event.inputs.version }}-cn 
+        tag_name: ${{ github.event.inputs.version }}-cn
         name: luci-app-nekobox ${{ github.event.inputs.version }}-cn
         files: luci-app-nekobox*.ipk
