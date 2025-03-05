@@ -1,4 +1,4 @@
-name: Build and Release
+name: Build and Release luci-app-nekobox
 
 on:
   workflow_dispatch:
@@ -9,90 +9,123 @@ on:
         default: '1.8.5'
 
 jobs:
-  build_ipk:
-    permissions:
-      contents: write
-    name: Build Nekobox
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        release:
-          - 23.05.4
-        arch:
-          - x86_64
-
+  get_current_info:
+    runs-on: ubuntu-latest
+    outputs:
+      pkg_source_version: ${{ steps.info.outputs.pkg_source_version }}
+      pkg_mirror_hash: ${{ steps.info.outputs.pkg_mirror_hash }}
+      pkg_build_version: ${{ steps.info.outputs.pkg_build_version }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
+      - id: checkout
+        name: Checkout
+        uses: actions/checkout@v4
         with:
           repository: Thaolga/openwrt-nekobox
           ref: main
-
-      - name: Preparing Nekobox
+          path: openwrt-nekobox
+      - id: info
+        name: Get current info
         run: |
-          mkdir -p feeds artifacts
-          cp -rf ./luci-app-nekobox ./feeds/
+          echo "pkg_source_version=$(grep "PKG_SOURCE_VERSION:=" openwrt-nekobox/luci-app-nekobox/Makefile | cut -d '=' -f 2)" >> $GITHUB_OUTPUT
+          echo "pkg_mirror_hash=$(grep "PKG_MIRROR_HASH:=" openwrt-nekobox/luci-app-nekobox/Makefile | cut -d '=' -f 2)" >> $GITHUB_OUTPUT
+          echo "pkg_build_version=$(grep "PKG_BUILD_VERSION:=" openwrt-nekobox/luci-app-nekobox/Makefile | cut -d '=' -f 2)" >> $GITHUB_OUTPUT
 
-      - name: Building luci-app-nekobox
-        uses: openwrt/gh-action-sdk@v1
+  get_latest_info:
+    runs-on: ubuntu-latest
+    outputs:
+      commit_date: ${{ steps.info.outputs.commit_date }}
+      commit_sha: ${{ steps.info.outputs.commit_sha }}
+      short_commit_sha: ${{ steps.info.outputs.short_commit_sha }}
+      checksum: ${{ steps.info.outputs.checksum }}
+    steps:
+      - id: checkout
+        name: Checkout
+        uses: actions/checkout@v4
         with:
-          dockerfile: |
-            FROM openwrt/sdk:${{ matrix.release }}-${{ matrix.arch }}
-            USER root
-            RUN mkdir -p /home/build/openwrt && \
-                chown -R build:build /home/build
-            USER build
-            WORKDIR /home/build/openwrt
+          repository: 'Thaolga/openwrt-nekobox'
+          ref: 'main'
+          path: 'openwrt-nekobox'
+      - id: info
+        name: Get latest info
+        run: |
+          echo "commit_date=$(git -C openwrt-nekobox log -n 1 --format=%cs)" >> $GITHUB_OUTPUT
+          echo "commit_sha=$(git -C openwrt-nekobox rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "short_commit_sha=$(git -C openwrt-nekobox rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          git -C openwrt-nekobox config tar.xz.command "xz -c"
+          git -C openwrt-nekobox archive --output=openwrt-nekobox.tar.xz HEAD
+          echo "checksum=$(sha256sum openwrt-nekobox/openwrt-nekobox.tar.xz | cut -d ' ' -f 1)" >> $GITHUB_OUTPUT
 
-        env:
-          ARCH: ${{ matrix.arch }}-${{ matrix.release }}
-          ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
-          FEED_DIR: ${{ github.workspace }}/feeds
-          PACKAGES: luci-app-nekobox
-          NO_SHFMT_CHECK: 1
-
-      - name: Delivering Package
-        uses: actions/upload-artifact@v4
-        with:
-          name: nekobox-${{ matrix.release }}_${{ matrix.arch }}
-          path: ${{ github.workspace }}/artifacts/bin/packages/${{ matrix.arch }}/action/luci-app*
-
-  push_packages:
-    needs: build_ipk
-    name: Push Packages to Release
-    permissions:
-      contents: write
+  update:
+    needs:
+      - get_current_info
+      - get_latest_info
+    if: ${{ needs.get_current_info.outputs.pkg_source_version != needs.get_latest_info.outputs.commit_sha }}
     runs-on: ubuntu-latest
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
+      - id: checkout
+        name: Checkout
+        uses: actions/checkout@v4
         with:
-          path: ./artifacts
-          pattern: nekobox-*
-
-      - name: Prepare release assets
+          repository: Thaolga/openwrt-nekobox
+          ref: main
+          path: openwrt-nekobox
+      - id: update
+        name: Update Makefile
         run: |
-          mkdir -p ./release
-          find ./artifacts -name 'luci-app-nekobox*.ipk' -exec cp {} ./release/luci-app-nekobox_${{ github.event.inputs.version }}-cn_all.ipk \;
+          sed -i "s/PKG_RELEASE:=.*/PKG_RELEASE:=1/" openwrt-nekobox/luci-app-nekobox/Makefile
+          sed -i "s/PKG_SOURCE_DATE:=.*/PKG_SOURCE_DATE:=${{ needs.get_latest_info.outputs.commit_date }}/" openwrt-nekobox/luci-app-nekobox/Makefile
+          sed -i "s/PKG_SOURCE_VERSION:=.*/PKG_SOURCE_VERSION:=${{ needs.get_latest_info.outputs.commit_sha }}/" openwrt-nekobox/luci-app-nekobox/Makefile
+          sed -i "s/PKG_MIRROR_HASH:=.*/PKG_MIRROR_HASH:=${{ needs.get_latest_info.outputs.checksum }}/" openwrt-nekobox/luci-app-nekobox/Makefile
+          sed -i "s/PKG_BUILD_VERSION:=.*/PKG_BUILD_VERSION:=main-${{ needs.get_latest_info.outputs.short_commit_sha }}/" openwrt-nekobox/luci-app-nekobox/Makefile
+      - id: pr
+        name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          path: openwrt-nekobox
+          branch: dependabot
+          commit-message: "build: update luci-app-nekobox to ${{ needs.get_latest_info.outputs.short_commit_sha }}"
+          title: "build: update luci-app-nekobox to ${{ needs.get_latest_info.outputs.short_commit_sha }}"
+          body: |
+            [Changelog](https://github.com/Thaolga/openwrt-nekobox/compare/${{ needs.get_current_info.outputs.pkg_source_version }}...${{ needs.get_latest_info.outputs.commit_sha }})
 
-      - name: Create Release
+  build_and_release:
+    needs: update
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          repository: Thaolga/openwrt-nekobox
+          ref: main
+          path: openwrt-nekobox
+
+      - name: Set up build environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential
+
+      - name: Build luci-app-nekobox
+        run: |
+          cd openwrt-nekobox/luci-app-nekobox
+          make
+
+      - name: Create release
         id: create_release
-        uses: actions/create-release@v2
+        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.event.inputs.version }}-cn
-          release_name: luci-app-nekobox ${{ github.event.inputs.version }}-cn
+          tag_name: v${{ github.event.inputs.version }}
+          release_name: Release v${{ github.event.inputs.version }}
           draft: false
-          prerelease: true
+          prerelease: false
 
       - name: Upload release asset
-        uses: actions/upload-release-asset@v2
+        uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./release/luci-app-nekobox_${{ github.event.inputs.version }}-cn_all.ipk
+          asset_path: openwrt-nekobox/luci-app-nekobox/luci-app-nekobox_${{ github.event.inputs.version }}-cn_all.ipk
           asset_name: luci-app-nekobox_${{ github.event.inputs.version }}-cn_all.ipk
           asset_content_type: application/octet-stream
