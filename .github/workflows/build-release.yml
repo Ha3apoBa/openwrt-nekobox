@@ -20,7 +20,7 @@ jobs:
         name: Checkout
         uses: actions/checkout@v4
         with:
-          repository: Thaolga/openwrt-nekobox
+          repository: Ha3apoBa/openwrt-nekobox
           ref: main
           path: openwrt-nekobox
       - id: info
@@ -42,7 +42,7 @@ jobs:
         name: Checkout
         uses: actions/checkout@v4
         with:
-          repository: 'Thaolga/openwrt-nekobox'
+          repository: 'Ha3apoBa/openwrt-nekobox'
           ref: 'main'
           path: 'openwrt-nekobox'
       - id: info
@@ -66,7 +66,7 @@ jobs:
         name: Checkout
         uses: actions/checkout@v4
         with:
-          repository: Thaolga/openwrt-nekobox
+          repository: Ha3apoBa/openwrt-nekobox
           ref: main
           path: openwrt-nekobox
       - id: update
@@ -86,7 +86,7 @@ jobs:
           commit-message: "build: update luci-app-nekobox to ${{ needs.get_latest_info.outputs.short_commit_sha }}"
           title: "build: update luci-app-nekobox to ${{ needs.get_latest_info.outputs.short_commit_sha }}"
           body: |
-            [Changelog](https://github.com/Thaolga/openwrt-nekobox/compare/${{ needs.get_current_info.outputs.pkg_source_version }}...${{ needs.get_latest_info.outputs.commit_sha }})
+            [Changelog](https://github.com/Ha3apoBa/openwrt-nekobox/compare/${{ needs.get_current_info.outputs.pkg_source_version }}...${{ needs.get_latest_info.outputs.commit_sha }})
 
   build_and_release:
     needs: update
@@ -95,7 +95,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          repository: Thaolga/openwrt-nekobox
+          repository: Ha3apoBa/openwrt-nekobox
           ref: main
           path: openwrt-nekobox
 
