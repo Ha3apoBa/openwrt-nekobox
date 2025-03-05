@@ -34,7 +34,7 @@ jobs:
           cp -rf ./luci-app-nekobox ./feeds
 
       - name: Building luci-app-nekobox
-        uses: Ha3apoBa/gh-action-sdk@main
+        uses: xuhengfei/gh-action-sdk@v1
         env:
           ARCH: ${{ matrix.arch }}-${{ matrix.release }}
           ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
