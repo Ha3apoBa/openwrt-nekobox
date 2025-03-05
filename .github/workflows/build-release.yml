@@ -38,6 +38,8 @@ jobs:
         with:
           dockerfile: |
             FROM openwrt/sdk:${{ matrix.release }}-${{ matrix.arch }}
+            RUN mkdir -p /home/build/openwrt
+            WORKDIR /home/build/openwrt
             COPY entrypoint.sh /entrypoint.sh
             RUN chmod +x /entrypoint.sh
             ENTRYPOINT ["/entrypoint.sh"]
