@@ -35,6 +35,10 @@ jobs:
 
       - name: Building luci-app-nekobox
         uses: openwrt/gh-action-sdk@v1
+        with:
+          dockerfile: |
+            FROM openwrt/sdk:${{ matrix.release }}-${{ matrix.arch }}
+            WORKDIR /home/build/openwrt
         env:
           ARCH: ${{ matrix.arch }}-${{ matrix.release }}
           ARTIFACTS_DIR: ${{ github.workspace }}/artifacts
